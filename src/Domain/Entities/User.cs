@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using HashCT_BackEnd.Data.Tools;
+using Shared.Enums.User;
 
 namespace Domain.Entities
 {
@@ -20,7 +21,7 @@ namespace Domain.Entities
         [Required] public required bool PhoneNumberConfirmation { get; set; }
         [Required][PasswordPropertyText] public required string Password { get; set; }
 
-        public string? Avatar { get; private set; }
+        [MaxLength(500)] public string? Avatar { get; private set; }
 
         public Dictionary<string, string>? SocialMedias { get; private set; }
 
@@ -118,17 +119,5 @@ namespace Domain.Entities
             LastLoginIp = Sanitize.Clarify(lastLoginIp);
 
         }
-    }
-
-    public enum UserGender
-    {
-        Male = 0,
-        Female = 1
-    }
-    public enum UserStatus
-    {
-        Active = 0,
-        Banned = 1,
-        Restricted = 2
     }
 }
