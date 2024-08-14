@@ -11,4 +11,9 @@
         Private = 1,
         Public = 2
     }
+    public enum CommunityChannelType
+    {
+        Text = 1,
+        Voice = 2
+    }
 }
