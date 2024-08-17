@@ -16,4 +16,10 @@
         Text = 1,
         Voice = 2
     }
+
+    public enum UserCommunityStatus
+    {
+        Active = 1,
+        Banned = 2,
+    }
 }

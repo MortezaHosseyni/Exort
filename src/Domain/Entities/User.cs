@@ -14,11 +14,15 @@ namespace Domain.Entities
         [MaxLength(10)] public string? NationalCode { get; private set; }
 
         [Required][MaxLength(80)] public string Username { get; private set; }
-        [Required][EmailAddress] public required string Email { get; set; }
         [MaxLength(100)] public string? Bio { get; private set; }
         [MaxLength(100)] public string? Address { get; private set; }
+
+        [Required][EmailAddress] public required string Email { get; set; }
+        [Required] public required bool EmailConfirmation { get; set; }
+
         [Phone] public string? PhoneNumber { get; private set; }
         [Required] public required bool PhoneNumberConfirmation { get; set; }
+
         [Required][PasswordPropertyText] public required string Password { get; set; }
 
         [MaxLength(500)] public string? Avatar { get; private set; }
@@ -36,7 +40,8 @@ namespace Domain.Entities
 
         public string? UserAgent { get; set; }
 
-        /// <inheritdoc />
+        public ICollection<Friend>? Friends { get; set; }
+
         User(
             string? firstName,
             string? lastName,

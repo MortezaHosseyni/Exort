@@ -2,13 +2,19 @@
 {
     public enum UserGender
     {
-        Male = 0,
-        Female = 1
+        Male = 1,
+        Female = 2
     }
     public enum UserStatus
     {
-        Active = 0,
-        Banned = 1,
-        Restricted = 2
+        Active = 1,
+        Banned = 2,
+        Restricted = 3
+    }
+
+    public enum FriendStatus
+    {
+        Active = 1,
+        Banned = 2
     }
 }

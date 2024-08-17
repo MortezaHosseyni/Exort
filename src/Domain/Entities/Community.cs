@@ -21,6 +21,8 @@ namespace Domain.Entities
 
         [Required] public required ICollection<CommunityChannel> Channels { get; set; }
 
+        public ICollection<CommunityMessage>? Messages { get; set; }
+
         public Community(string name, string description, string? image, string? banner, CommunityStatus status, CommunityType type, Dictionary<string, ICollection<CommunityPart>> roles)
         {
             // Clarify name

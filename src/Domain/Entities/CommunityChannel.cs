@@ -12,6 +12,8 @@ namespace Domain.Entities
 
         [Required] public CommunityChannelType Type { get; private set; }
 
+        public ICollection<CommunityMessage>? Messages { get; set; }
+
         public CommunityChannel(string title, string? description, CommunityChannelType type)
         {
             // Clarify title
