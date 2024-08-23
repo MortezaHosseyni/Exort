@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using Infrastructure.Configurations;
+using MongoDB.Driver;
 
 namespace Domain.Entities
 {
@@ -6,12 +7,11 @@ namespace Domain.Entities
     {
         private readonly IMongoDatabase _database;
 
-        public AppDatabase(IConfiguration configuration)
+        public AppDatabase(IDatabaseConfiguration configuration)
         {
-            // MongoDB connection setting
-            var connectionString = configuration.GetConnectionString("MongoDb");
-            var client = new MongoClient(connectionString);
-            _database = client.GetDatabase(configuration["DatabaseName"]);
+            var dbInfo = configuration.GetDatabaseInformation();
+            var client = new MongoClient(dbInfo.ConnectionStrings.MongoDb);
+            _database = client.GetDatabase(dbInfo.DatabaseName);
         }
 
         // User collections
