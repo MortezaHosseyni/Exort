@@ -32,7 +32,7 @@ namespace Application.Services
         {
             try
             {
-                var userModel = new User(null, null, null, user.Username, null, null, null, null, null, UserGender.Undefined,
+                var addedUser = new User(null, null, null, user.Username, null, null, null, null, null, UserGender.Undefined,
                     UserStatus.Active, "User registered and active.", ip, null)
                 {
                     PhoneNumberConfirmation = false,
@@ -44,9 +44,9 @@ namespace Application.Services
                     UpdateDateTime = DateTime.Now
                 };
 
-                await _user.AddAsync(userModel);
+                await _user.AddAsync(addedUser);
 
-                return (_mapper.Map<UserGetDto>(userModel), "User registered successfully.");
+                return (_mapper.Map<UserGetDto>(addedUser), "User registered successfully.");
             }
             catch (Exception ex)
             {
