@@ -42,7 +42,7 @@ namespace Domain.Entities
 
         public ICollection<Friend>? Friends { get; set; }
 
-        User(
+        public User(
             string? firstName,
             string? lastName,
             string? nationalCode,
