@@ -9,6 +9,8 @@ namespace Domain.Repositories
         Task<IEnumerable<TEntity>> GetLimitedAsync(int limit);
         Task<IEnumerable<TEntity>> FindAsync(FilterDefinition<TEntity> filter);
         Task<TEntity> FindOneAsync(FilterDefinition<TEntity> filter);
+        Task<bool> AnyAsync();
+        Task<bool> AnyByPredicateAsync(FilterDefinition<TEntity> filter);
         Task<long> CountAsync();
         Task<long> CountByPredicateAsync(FilterDefinition<TEntity> filter);
         Task AddAsync(TEntity entity);
@@ -52,6 +54,16 @@ namespace Domain.Repositories
         public async Task<TEntity> FindOneAsync(FilterDefinition<TEntity> filter)
         {
             return await Collection.Find(filter).FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> AnyAsync()
+        {
+            return await Collection.Find(Builders<TEntity>.Filter.Empty).AnyAsync();
+        }
+
+        public async Task<bool> AnyByPredicateAsync(FilterDefinition<TEntity> filter)
+        {
+            return await Collection.Find(filter).AnyAsync();
         }
 
         public async Task<long> CountAsync()

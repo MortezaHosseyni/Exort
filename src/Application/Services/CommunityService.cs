@@ -10,15 +10,21 @@ namespace Application.Services
     public interface ICommunityService
     {
         Task<CommunityGetDto> GetCommunity(Ulid id);
-        Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community);
+        Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community, Ulid userId);
         Task<(CommunityGetDto?, string)> UpdateCommunity(Ulid id, CommunityPutDto community);
+        Task<(bool, string)> JoinToCommunity(Ulid userId, Ulid communityId);
+        Task<(bool, string)> LeaveTheCommunity(Ulid userId, Ulid communityId);
     }
-    public class CommunityService(ICommunityRepository community, IFileManagerService fileManager, IMapper mapper) : ICommunityService
+    public class CommunityService(ICommunityRepository community, IUsersCommunityRepository usersCommunity, IUserRepository user, IFileManagerService fileManager, IMapper mapper) : ICommunityService
     {
         private readonly ICommunityRepository _community = community;
+        private readonly IUsersCommunityRepository _usersCommunity = usersCommunity;
+        private readonly IUserRepository _user = user;
 
         private readonly IFileManagerService _fileManager = fileManager;
         private readonly IMapper _mapper = mapper;
+
+        private const int CommunityCreationQuota = 20;
 
         public async Task<CommunityGetDto> GetCommunity(Ulid id)
         {
@@ -28,12 +34,29 @@ namespace Application.Services
             return _mapper.Map<CommunityGetDto>(community);
         }
 
-        public async Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community)
+        public async Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community, Ulid userId)
         {
             try
             {
+                var checkUserCommunities = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId);
+                var userCommunitiesCount = await _usersCommunity.CountByPredicateAsync(checkUserCommunities);
+                if (userCommunitiesCount >= CommunityCreationQuota)
+                    return (null, $"This User has reached Community creation quota (Maximum Community user can create or join: {CommunityCreationQuota}).");
+
                 var id = Ulid.NewUlid();
-                var defaultRoles = new Dictionary<string, ICollection<CommunityPart>> { { "Member", new List<CommunityPart>() } }; // TODO: Seed default 'Community Parts' and use them.
+                var defaultRoles = new Dictionary<string, ICollection<CommunityPart>> { { "Member", new List<CommunityPart>()
+                {
+                    new ("Send Message", "User can send a message to a text channel from Community.", new List<string>())
+                    {
+                        CreateDateTime = DateTime.Now,
+                        UpdateDateTime = DateTime.Now
+                    },
+                    new ("Join Voice", "User can join and connect to any voice channel from Community.", new List<string>())
+                    {
+                        CreateDateTime = DateTime.Now,
+                        UpdateDateTime = DateTime.Now
+                    }
+                } } };
 
                 var addedCommunity = new Community(community.Name, community.Description,
                     community.Image != null
@@ -45,7 +68,7 @@ namespace Application.Services
                     CommunityStatus.Active, community.Type, defaultRoles)
                 {
                     Id = id,
-                    MembersCount = 1, // TODO: Add community owner as a member
+                    MembersCount = 1,
                     Channels = new List<CommunityChannel>()
                     {
                         new ("General Text", null, CommunityChannelType.Text)
@@ -62,8 +85,65 @@ namespace Application.Services
                     CreateDateTime = DateTime.Now,
                     UpdateDateTime = DateTime.Now
                 };
-
                 await _community.AddAsync(addedCommunity);
+
+                var addedUserCommunity = new UsersCommunity(UserCommunityStatus.Active)
+                {
+                    CommunityId = id,
+                    UserId = userId,
+                    Roles = new Dictionary<string, ICollection<CommunityPart>>()
+                    {
+                        {
+                            "Owner", new List<CommunityPart>()
+                            {
+                                new("Send Message", "User can send a message to a text channel from Community.",
+                                    new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new("Join Voice", "User can join and connect to any voice channel from Community.",
+                                    new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new("Ban & Unban", "Ban & unban another users from Community.", new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new("Create Voice Channel", "User can create a voice channel for Community.",
+                                    new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new("Create Text Channel", "User can create a text channel for Community.",
+                                    new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new("Remove Messages", "User can remove message from any channel of Community.",
+                                    new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new("Voice Kick", "User can kick other users from any voice channel of Community.",
+                                    new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                }
+                            }
+                        }
+                    },
+                    CreateDateTime = DateTime.Now,
+                    UpdateDateTime = DateTime.Now
+                };
+                await _usersCommunity.AddAsync(addedUserCommunity);
 
                 return (_mapper.Map<CommunityGetDto>(addedCommunity), "Community created successfully.");
             }
@@ -103,6 +183,96 @@ namespace Application.Services
             catch (Exception ex)
             {
                 return (null, ex.Message);
+            }
+        }
+
+        public async Task<(bool, string)> JoinToCommunity(Ulid userId, Ulid communityId)
+        {
+            try
+            {
+                var checkUserExistsFilter = Builders<User>.Filter.Gt(u => u.Id, userId);
+                if (!await _user.AnyByPredicateAsync(checkUserExistsFilter))
+                    return (false, "Couldn't find any User with that Id.");
+
+                var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, communityId);
+                if (!await _community.AnyByPredicateAsync(communityFilter))
+                    return (false, "Couldn't find any Community with that Id.");
+
+                var checkJoinFilter = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId) & Builders<UsersCommunity>.Filter.Gt(uc => uc.CommunityId, communityId);
+                if (await _usersCommunity.AnyByPredicateAsync(checkJoinFilter))
+                    return (false, "User already joined in this Community.");
+
+                var checkUserCommunities = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId);
+                var userCommunitiesCount = await _usersCommunity.CountByPredicateAsync(checkUserCommunities);
+                if (userCommunitiesCount >= CommunityCreationQuota)
+                    return (false, $"This User has reached quota to join Communities (Maximum Community user can create or join: {CommunityCreationQuota}).");
+
+                var addedUsersCommunity = new UsersCommunity(UserCommunityStatus.Active)
+                {
+                    UserId = userId,
+                    CommunityId = communityId,
+                    Roles = new Dictionary<string, ICollection<CommunityPart>> { { "Member", new List<CommunityPart>()
+                    {
+                        new ("Send Message", "User can send a message to a text channel from Community.", new List<string>())
+                        {
+                            CreateDateTime = DateTime.Now,
+                            UpdateDateTime = DateTime.Now
+                        },
+                        new ("Join Voice", "User can join and connect to any voice channel from Community.", new List<string>())
+                        {
+                            CreateDateTime = DateTime.Now,
+                            UpdateDateTime = DateTime.Now
+                        }
+                    } } },
+                    CreateDateTime = DateTime.Now,
+                    UpdateDateTime = DateTime.Now
+                };
+                await _usersCommunity.AddAsync(addedUsersCommunity);
+
+                var community = await _community.FindOneAsync(communityFilter);
+                community.MembersCount = community.MembersCount + 1;
+                await _community.UpdateAsync(communityFilter, community);
+
+                return (true, "User joined Community successfully.");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<(bool, string)> LeaveTheCommunity(Ulid userId, Ulid communityId)
+        {
+            try
+            {
+                var checkUserExistsFilter = Builders<User>.Filter.Gt(u => u.Id, userId);
+                if (!await _user.AnyByPredicateAsync(checkUserExistsFilter))
+                    return (false, "Couldn't find any User with that Id.");
+
+                var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, communityId);
+                if (!await _community.AnyByPredicateAsync(communityFilter))
+                    return (false, "Couldn't find any Community with that Id.");
+
+                var checkJoinFilter = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId) & Builders<UsersCommunity>.Filter.Gt(uc => uc.CommunityId, communityId);
+                if (!await _usersCommunity.AnyByPredicateAsync(checkJoinFilter))
+                    return (false, "User is not registered to this Community.");
+
+                var userCommunity = await _usersCommunity.FindOneAsync(checkJoinFilter);
+                if (userCommunity.Roles.ContainsKey("Owner"))
+                {
+                    var community = await _community.FindOneAsync(communityFilter);
+                    community.MembersCount = community.MembersCount - 1;
+                    community.UpdateStatus(CommunityStatus.Deleted);
+                    await _community.UpdateAsync(communityFilter, community);
+                }
+
+                await _usersCommunity.RemoveAsync(checkJoinFilter);
+
+                return (true, "User leaved Community successfully.");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
             }
         }
     }

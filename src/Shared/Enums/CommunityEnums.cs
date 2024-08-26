@@ -2,6 +2,7 @@
 {
     public enum CommunityStatus
     {
+        Deleted = 0,
         Active = 1,
         Banned = 2,
         Restricted = 3

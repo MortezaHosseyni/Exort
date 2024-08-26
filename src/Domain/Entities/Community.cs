@@ -55,5 +55,13 @@ namespace Domain.Entities
             }
             Roles = cleanRoles;
         }
+
+        public void UpdateStatus(CommunityStatus status)
+        {
+            // Check status
+            if (!Enum.IsDefined(typeof(CommunityStatus), status))
+                throw new Exception("Status is invalid.");
+            Status = status;
+        }
     }
 }
