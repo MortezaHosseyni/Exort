@@ -18,6 +18,13 @@
         Voice = 2
     }
 
+    public enum CommunityChannelStatus
+    {
+        Deleted = 0,
+        Active = 1,
+        Inactive = 2
+    }
+
     public enum UserCommunityStatus
     {
         Active = 1,

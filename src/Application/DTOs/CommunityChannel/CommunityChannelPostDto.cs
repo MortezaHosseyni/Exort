@@ -8,7 +8,7 @@ namespace Application.DTOs.CommunityChannel
         [Required] public int Index { get; set; }
         [Required][MaxLength(100)] public required string Title { get; set; }
         [MaxLength(225)] public string? Description { get; set; }
-
+        [Required] public required Ulid CommunityId { get; set; }
         [Required] public CommunityChannelType Type { get; set; }
     }
 }

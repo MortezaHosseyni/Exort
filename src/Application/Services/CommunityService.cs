@@ -10,6 +10,7 @@ namespace Application.Services
     public interface ICommunityService
     {
         Task<CommunityGetDto> GetCommunity(Ulid id);
+        Task<List<CommunityGetDto>> GetUserCommunities(Ulid userId);
         Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community, Ulid userId);
         Task<(CommunityGetDto?, string)> UpdateCommunity(Ulid id, CommunityPutDto community);
         Task<(bool, string)> JoinToCommunity(Ulid userId, Ulid communityId);
@@ -32,6 +33,23 @@ namespace Application.Services
             var community = await _community.FindOneAsync(filter);
 
             return _mapper.Map<CommunityGetDto>(community);
+        }
+
+        public async Task<List<CommunityGetDto>> GetUserCommunities(Ulid userId)
+        {
+            var filter = Builders<UsersCommunity>.Filter.Gt(c => c.UserId, userId);
+            var userCommunities = await _usersCommunity.FindAsync(filter);
+
+            var communities = new List<CommunityGetDto>();
+
+            foreach (var userCommunity in userCommunities)
+            {
+                var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, userCommunity.CommunityId);
+                var community = await _community.FindOneAsync(communityFilter);
+                communities.Add(_mapper.Map<CommunityGetDto>(community));
+            }
+
+            return communities;
         }
 
         public async Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community, Ulid userId)
@@ -113,13 +131,13 @@ namespace Application.Services
                                     CreateDateTime = DateTime.Now,
                                     UpdateDateTime = DateTime.Now
                                 },
-                                new("Create Voice Channel", "User can create a voice channel for Community.",
+                                new("Create Voice Channel", "User can create, update or delete a voice channel for Community.",
                                     new List<string>())
                                 {
                                     CreateDateTime = DateTime.Now,
                                     UpdateDateTime = DateTime.Now
                                 },
-                                new("Create Text Channel", "User can create a text channel for Community.",
+                                new("Create Text Channel", "User can create, update or delete a text channel for Community.",
                                     new List<string>())
                                 {
                                     CreateDateTime = DateTime.Now,
@@ -258,11 +276,16 @@ namespace Application.Services
                     return (false, "User is not registered to this Community.");
 
                 var userCommunity = await _usersCommunity.FindOneAsync(checkJoinFilter);
+                var community = await _community.FindOneAsync(communityFilter);
                 if (userCommunity.Roles.ContainsKey("Owner"))
                 {
-                    var community = await _community.FindOneAsync(communityFilter);
                     community.MembersCount = community.MembersCount - 1;
                     community.UpdateStatus(CommunityStatus.Deleted);
+                    await _community.UpdateAsync(communityFilter, community);
+                }
+                else
+                {
+                    community.MembersCount = community.MembersCount - 1;
                     await _community.UpdateAsync(communityFilter, community);
                 }
 

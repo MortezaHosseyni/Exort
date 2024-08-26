@@ -35,12 +35,12 @@ namespace Application.Seeds
                     CreateDateTime = DateTime.Now,
                     UpdateDateTime = DateTime.Now
                 },
-                new ("Create Voice Channel", "User can create a voice channel for Community.", new List<string>())
+                new ("Create Voice Channel", "User can create, update or delete a voice channel for Community.", new List<string>())
                 {
                     CreateDateTime = DateTime.Now,
                     UpdateDateTime = DateTime.Now
                 },
-                new ("Create Text Channel", "User can create a text channel for Community.", new List<string>())
+                new ("Create Text Channel", "User can create, update or delete a text channel for Community.", new List<string>())
                 {
                     CreateDateTime = DateTime.Now,
                     UpdateDateTime = DateTime.Now
