@@ -9,6 +9,11 @@ namespace Application.Services
 {
     public interface ICommunityChannelService
     {
+        Task<CommunityChannelGetDto> GetChannel(Ulid id);
+        Task<List<CommunityChannelGetDto>> GetCommunityChannels(Ulid communityId);
+        Task<(CommunityChannelGetDto?, string)> AddCommunityChannel(Ulid userId, CommunityChannelPostDto communityChannel);
+        Task<(CommunityChannelGetDto?, string)> UpdateCommunityChannel(Ulid userId, Ulid channelId, CommunityChannelPutDto communityChannel);
+        Task<(bool, string)> DeleteChannel(Ulid userId, Ulid channelId);
     }
     public class CommunityChannelService(ICommunityChannelRepository communityChannel, ICommunityRepository community, IUsersCommunityRepository usersCommunity, IMapper mapper) : ICommunityChannelService
     {

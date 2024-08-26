@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+﻿using Application.DTOs.Friend;
 
 namespace Application.DTOs.User
 {
@@ -9,6 +9,6 @@ namespace Application.DTOs.User
         public string? Username { get; set; }
         public string? Avatar { get; set; }
         public Dictionary<string, string>? SocialMedias { get; set; }
-        public List<Friend>? MutualFriends { get; set; }
+        public List<FriendGetDto>? MutualFriends { get; set; }
     }
 }

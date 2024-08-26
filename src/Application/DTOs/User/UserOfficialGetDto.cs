@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+﻿using Application.DTOs.Friend;
 using Shared.Enums.User;
 
 namespace Application.DTOs.User
@@ -16,7 +16,7 @@ namespace Application.DTOs.User
         public UserGender Gender { get; set; }
         public DateTime Birthdate { get; set; }
         public DateTime LastLogin { get; set; }
-        public ICollection<Friend>? Friends { get; set; }
+        public ICollection<FriendGetDto>? Friends { get; set; }
 
         public DateTime CreateDateTime { get; set; }
         public DateTime UpdateDateTime { get; set; }

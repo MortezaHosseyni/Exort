@@ -16,6 +16,7 @@
     public enum FriendStatus
     {
         Active = 1,
-        Banned = 2
+        Banned = 2,
+        Invited = 3
     }
 }

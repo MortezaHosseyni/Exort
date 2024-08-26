@@ -37,14 +37,14 @@ namespace Application.Services
 
         public async Task<List<CommunityGetDto>> GetUserCommunities(Ulid userId)
         {
-            var filter = Builders<UsersCommunity>.Filter.Gt(c => c.UserId, userId);
+            var filter = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId);
             var userCommunities = await _usersCommunity.FindAsync(filter);
 
             var communities = new List<CommunityGetDto>();
 
             foreach (var userCommunity in userCommunities)
             {
-                var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, userCommunity.CommunityId);
+                var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, userCommunity.CommunityId) & Builders<Community>.Filter.Gt(c => c.Status, CommunityStatus.Active);
                 var community = await _community.FindOneAsync(communityFilter);
                 communities.Add(_mapper.Map<CommunityGetDto>(community));
             }
