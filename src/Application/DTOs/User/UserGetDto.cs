@@ -4,6 +4,8 @@ namespace Application.DTOs.User
 {
     public class UserGetDto
     {
+        public Ulid Id { get; set; }
+
         public string? FirstName { get; set; }
         public string? LastName { get;  set; }
         public string? Username { get; set; }

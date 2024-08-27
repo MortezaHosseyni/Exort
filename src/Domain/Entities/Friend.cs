@@ -17,5 +17,13 @@ namespace Domain.Entities
                 throw new Exception("Friend status is invalid.");
             Status = status;
         }
+
+        public void UpdateStatus(FriendStatus status)
+        {
+            // Check friend status
+            if (!Enum.IsDefined(typeof(FriendStatus), status))
+                throw new Exception("Friend status is invalid.");
+            Status = status;
+        }
     }
 }
