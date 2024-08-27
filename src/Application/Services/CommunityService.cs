@@ -154,6 +154,16 @@ namespace Application.Services
                                 {
                                     CreateDateTime = DateTime.Now,
                                     UpdateDateTime = DateTime.Now
+                                },
+                                new ("Create Role", "User can create, update or delete a role in Community.", new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
+                                },
+                                new ("Give Role", "User can give or remove a role to any member from Community.", new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
                                 }
                             }
                         }
