@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using HashCT_BackEnd.Data.Tools;
+using Shared.Utilities;
 
 namespace Domain.Entities
 {

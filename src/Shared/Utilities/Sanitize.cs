@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace HashCT_BackEnd.Data.Tools
+namespace Shared.Utilities
 {
     public class Sanitize
     {

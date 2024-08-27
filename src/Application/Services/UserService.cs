@@ -4,14 +4,15 @@ using Domain.Entities;
 using Domain.Repositories;
 using MongoDB.Driver;
 using Shared.Enums.User;
+using Shared.Utilities;
 
 namespace Application.Services
 {
     public interface IUserService
     {
         Task<UserGetDto> GetUser(Ulid id);
-        Task<(UserGetDto?, string)> AddUser(UserPostDto user, string ip, string agent);
         Task<(UserGetDto?, string)> UpdateUser(Ulid id, UserPutDto user);
+        Task<(bool, string)> UpdatePassword(Ulid id, UserUpdatePasswordDto updatePassword);
     }
     public class UserService(IUserRepository user, IFileManagerService fileManager, IMapper mapper) : IUserService
     {
@@ -26,32 +27,6 @@ namespace Application.Services
             var user = await _user.FindOneAsync(filter);
 
             return _mapper.Map<UserGetDto>(user);
-        }
-
-        public async Task<(UserGetDto?, string)> AddUser(UserPostDto user, string ip, string agent)
-        {
-            try
-            {
-                var addedUser = new User(null, null, null, user.Username, null, null, null, null, null, UserGender.Undefined,
-                    UserStatus.Active, "User registered and active.", ip, null)
-                {
-                    PhoneNumberConfirmation = false,
-                    Email = user.Email,
-                    EmailConfirmation = false,
-                    Password = user.Password,
-                    UserAgent = agent,
-                    CreateDateTime = DateTime.Now,
-                    UpdateDateTime = DateTime.Now
-                };
-
-                await _user.AddAsync(addedUser);
-
-                return (_mapper.Map<UserGetDto>(addedUser), "User registered successfully.");
-            }
-            catch (Exception ex)
-            {
-                return (null, ex.Message);
-            }
         }
 
         public async Task<(UserGetDto?, string)> UpdateUser(Ulid id, UserPutDto user)
@@ -85,6 +60,33 @@ namespace Application.Services
             catch (Exception ex)
             {
                 return (null, ex.Message);
+            }
+        }
+
+        public async Task<(bool, string)> UpdatePassword(Ulid id, UserUpdatePasswordDto updatePassword)
+        {
+            try
+            {
+                // Confirm password
+                if (updatePassword.Password != updatePassword.ConfirmPassword)
+                    return (false, "Password and confirm password is not match.");
+
+                // Find and check User
+                var userFilter = Builders<User>.Filter.Gt(u => u.Id, id);
+                if (!await _user.AnyByPredicateAsync(userFilter))
+                    return (false, "Couldn't find any User with that Id.");
+
+                var user = await _user.FindOneAsync(userFilter);
+
+                // Update password
+                user.Password = Password.Hash(updatePassword.Password);
+                await _user.UpdateAsync(userFilter, user);
+
+                return (true, "User password updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
             }
         }
     }

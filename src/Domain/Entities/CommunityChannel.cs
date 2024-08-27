@@ -1,6 +1,6 @@
-﻿using HashCT_BackEnd.Data.Tools;
-using Shared.Enums.Community;
+﻿using Shared.Enums.Community;
 using System.ComponentModel.DataAnnotations;
+using Shared.Utilities;
 
 namespace Domain.Entities
 {

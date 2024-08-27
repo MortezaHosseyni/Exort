@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
-using HashCT_BackEnd.Data.Tools;
 using Shared.Enums.User;
+using Shared.Utilities;
 
 namespace Domain.Entities
 {
