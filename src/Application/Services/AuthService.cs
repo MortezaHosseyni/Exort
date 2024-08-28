@@ -19,7 +19,7 @@ namespace Application.Services
     public interface IAuthService
     {
         Task<(UserOfficialGetDto?, bool, string)> Login(UserLoginPostDto login, JwtInformationFormat jwt);
-        Task<(UserOfficialGetDto?, bool, string)> Register(UserPostDto user, string ip, string agent);
+        Task<(UserOfficialGetDto?, bool, string)> Register(UserPostDto user, string? ip, string? agent);
         Task<(bool, string)> ForgotPassword(UserForgotPasswordDto password);
         Task<(bool, string)> ResetForgotPassword(UserResetForgotPasswordDto resetPassword);
     }
@@ -82,7 +82,7 @@ namespace Application.Services
             }
         }
 
-        public async Task<(UserOfficialGetDto?, bool, string)> Register(UserPostDto user, string ip, string agent)
+        public async Task<(UserOfficialGetDto?, bool, string)> Register(UserPostDto user, string? ip, string? agent)
         {
             try
             {

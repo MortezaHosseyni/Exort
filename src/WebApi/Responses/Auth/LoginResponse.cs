@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Application.DTOs.User;
 
-namespace WebApi.Responses
+namespace WebApi.Responses.Auth
 {
     /// <summary>
     /// Return information about login (token)
