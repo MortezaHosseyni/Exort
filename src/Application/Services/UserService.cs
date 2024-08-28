@@ -11,7 +11,7 @@ namespace Application.Services
     public interface IUserService
     {
         Task<UserGetDto> GetUser(Ulid id);
-        Task<(UserGetDto?, string)> UpdateUser(Ulid id, UserPutDto user);
+        Task<(UserOfficialGetDto?, bool, string)> UpdateUser(Ulid id, UserPutDto user);
         Task<(bool, string)> UpdatePassword(Ulid id, UserUpdatePasswordDto updatePassword);
     }
     public class UserService(IUserRepository user, IFileManagerService fileManager, IMapper mapper) : IUserService
@@ -29,17 +29,20 @@ namespace Application.Services
             return _mapper.Map<UserGetDto>(user);
         }
 
-        public async Task<(UserGetDto?, string)> UpdateUser(Ulid id, UserPutDto user)
+        public async Task<(UserOfficialGetDto?, bool, string)> UpdateUser(Ulid id, UserPutDto user)
         {
             try
             {
+                // Find User
                 var filter = Builders<User>.Filter.Gt(u => u.Id, id);
                 var userModel = await _user.FindOneAsync(filter);
 
+                // Update avatar
                 var userAvatar = userModel.Avatar;
                 if (user.Avatar != null)
                     userAvatar = _fileManager.SaveFileAndReturnName(user.Avatar, $"wwwroot/Users/{userModel.Id}/Avatars");
 
+                // Update User
                 var updatedUser = new User(user.FirstName, user.LastName, null, userModel.Username, user.Bio, null, null, userAvatar, user.SocialMedias, UserGender.Undefined,
                     UserStatus.Active, userModel.StatusDescription, userModel.RegisterIp, null)
                 {
@@ -55,11 +58,11 @@ namespace Application.Services
 
                 await _user.UpdateAsync(filter, updatedUser);
 
-                return (_mapper.Map<UserGetDto>(updatedUser), "User updated successfully.");
+                return (_mapper.Map<UserOfficialGetDto>(updatedUser), true, "User updated successfully.");
             }
             catch (Exception ex)
             {
-                return (null, ex.Message);
+                return (null, false, ex.Message);
             }
         }
 
