@@ -19,6 +19,8 @@ namespace Domain.Entities
 
         [Required][EmailAddress] public required string Email { get; set; }
         [Required] public required bool EmailConfirmation { get; set; }
+        [MaxLength(6)] public string? ResetPasswordCode { get; set; }
+        public DateTime ResetPasswordExpireTime { get; set; }
 
         [Phone] public string? PhoneNumber { get; private set; }
         [Required] public required bool PhoneNumberConfirmation { get; set; }

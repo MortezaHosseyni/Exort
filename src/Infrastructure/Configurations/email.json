@@ -1,0 +1,10 @@
+{
+  "EmailSettings": {
+    "SmtpServer": "smtp.exort.com",
+    "SmtpPort": 587,
+    "SmtpUser": "info@exort.com",
+    "SmtpPass": "your-email-password",
+    "SenderEmail": "info@exort.com",
+    "SenderName": "Exort"
+  }
+}

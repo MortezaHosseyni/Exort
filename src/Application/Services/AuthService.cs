@@ -10,6 +10,7 @@ using MongoDB.Driver;
 using Shared.Enums.User;
 using Shared.Utilities;
 using System.Text;
+using Infrastructure.Adapters.Email;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Formats;
 
@@ -20,10 +21,12 @@ namespace Application.Services
         Task<(UserOfficialGetDto?, bool, string)> Login(UserLoginPostDto login, JwtInformationFormat jwt);
         Task<(UserOfficialGetDto?, bool, string)> Register(UserPostDto user, string ip, string agent);
         Task<(bool, string)> ForgotPassword(UserForgotPasswordDto password);
+        Task<(bool, string)> ResetForgotPassword(UserResetForgotPasswordDto resetPassword);
     }
-    public class AuthService(IUserRepository user, IMapper mapper) : IAuthService
+    public class AuthService(IUserRepository user, IEmailService email, IMapper mapper) : IAuthService
     {
         private readonly IUserRepository _user = user;
+        private readonly IEmailService _email = email;
 
         private readonly IMapper _mapper = mapper;
 
@@ -120,15 +123,58 @@ namespace Application.Services
             try
             {
                 // Find and check User
-                var userFilter = Builders<User>.Filter.Gt(u => u.Username, password.Email);
+                var userFilter = Builders<User>.Filter.Gt(u => u.Email, password.Email);
                 if (!await _user.AnyByPredicateAsync(userFilter))
                     return (false, "Couldn't find any User with that email.");
 
                 var user = await _user.FindOneAsync(userFilter);
 
-                // TODO: Create email service then send reset password credentials to email
+                // Send Code
+                var code = CodeGenerator.GenerateNumberCode(6);
+                await _email.SendEmailAsync(password.Email, "Exort | Forgot Password", $"Your reset password code is: {code}", false); // TODO: Create beautiful html page for email body.
 
-                return (false, "");
+                user.ResetPasswordCode = code;
+                user.ResetPasswordExpireTime = DateTime.Now.Minute(30);
+                await _user.UpdateAsync(userFilter, user);
+
+                return (true, "Reset password code sent to email successfully.");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<(bool, string)> ResetForgotPassword(UserResetForgotPasswordDto resetPassword)
+        {
+            try
+            {
+                // Find and check User
+                var userFilter = Builders<User>.Filter.Gt(u => u.Email, resetPassword.Email);
+                if (!await _user.AnyByPredicateAsync(userFilter))
+                    return (false, "Couldn't find any User with that email.");
+
+                var user = await _user.FindOneAsync(userFilter);
+
+                // Check code
+                if (resetPassword.Code != user.ResetPasswordCode)
+                    return (false, "The reset password code is invalid.");
+
+                // Check expiration
+                if (DateTime.Now > user.ResetPasswordExpireTime)
+                    return (false, "Reset password time is expired!");
+
+                // Confirm password
+                if (resetPassword.Password != resetPassword.ConfirmPassword)
+                    return (false, "Password and confirm password is not match.");
+
+                // Update password
+                user.ResetPasswordCode = string.Empty;
+                user.ResetPasswordExpireTime = DateTime.MinValue;
+                user.Password = Password.Hash(resetPassword.Password);
+                await _user.UpdateAsync(userFilter, user);
+
+                return (true, "User password updated successfully.");
             }
             catch (Exception ex)
             {
