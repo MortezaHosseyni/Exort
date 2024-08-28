@@ -10,9 +10,9 @@ namespace Application.Services
     public interface ICommunityChannelService
     {
         Task<CommunityChannelGetDto> GetChannel(Ulid id);
-        Task<List<CommunityChannelGetDto>> GetCommunityChannels(Ulid communityId);
-        Task<(CommunityChannelGetDto?, string)> AddCommunityChannel(Ulid userId, CommunityChannelPostDto communityChannel);
-        Task<(CommunityChannelGetDto?, string)> UpdateCommunityChannel(Ulid userId, Ulid channelId, CommunityChannelPutDto communityChannel);
+        Task<(List<CommunityChannelGetDto>?, string)> GetCommunityChannels(Ulid communityId, Ulid userId);
+        Task<(CommunityChannelGetDto?, bool, string)> AddCommunityChannel(Ulid userId, CommunityChannelPostDto communityChannel);
+        Task<(CommunityChannelGetDto?, bool, string)> UpdateCommunityChannel(Ulid userId, Ulid channelId, CommunityChannelPutDto communityChannel);
         Task<(bool, string)> DeleteChannel(Ulid userId, Ulid channelId);
     }
     public class CommunityChannelService(ICommunityChannelRepository communityChannel, ICommunityRepository community, IUsersCommunityRepository usersCommunity, IMapper mapper) : ICommunityChannelService
@@ -33,42 +33,48 @@ namespace Application.Services
             return _mapper.Map<CommunityChannelGetDto>(communityChannel);
         }
 
-        public async Task<List<CommunityChannelGetDto>> GetCommunityChannels(Ulid communityId)
+        public async Task<(List<CommunityChannelGetDto>?, string)> GetCommunityChannels(Ulid communityId, Ulid userId)
         {
+            // Check User registration
+            var userFilter = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId) &
+                             Builders<UsersCommunity>.Filter.Gt(uc => uc.CommunityId, communityId);
+            if (!await _usersCommunity.AnyByPredicateAsync(userFilter))
+                return (null, "This User is not member of this Community.");
+
             var filter = Builders<CommunityChannel>.Filter.Gt(cc => cc.CommunityId, communityId) & Builders<CommunityChannel>.Filter.Gt(cc => cc.Status, CommunityChannelStatus.Active);
             var channels = await _communityChannel.FindAsync(filter);
 
-            return _mapper.Map<List<CommunityChannelGetDto>>(channels);
+            return (_mapper.Map<List<CommunityChannelGetDto>>(channels), string.Empty);
         }
 
-        public async Task<(CommunityChannelGetDto?, string)> AddCommunityChannel(Ulid userId, CommunityChannelPostDto communityChannel)
+        public async Task<(CommunityChannelGetDto?, bool, string)> AddCommunityChannel(Ulid userId, CommunityChannelPostDto communityChannel)
         {
             try
             {
                 // Check Community
                 var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, communityChannel.CommunityId);
                 if (!await _community.AnyByPredicateAsync(communityFilter))
-                    return (null, "Couldn't find any Community with that Id.");
+                    return (null, false, "Couldn't find any Community with that Id.");
                 var community = await _community.FindOneAsync(communityFilter);
                 if (community.Status != CommunityStatus.Active)
-                    return (null, "This Community is not active.");
+                    return (null, false, "This Community is not active.");
                 if (community.Channels.Count(x => x.Status != CommunityChannelStatus.Deleted) >= MaximumChannelCount)
-                    return (null, "This Community is reached channel quota.");
+                    return (null, false, "This Community is reached channel quota.");
 
                 // Check User registration
                 var userFilter = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId) &
                                  Builders<UsersCommunity>.Filter.Gt(uc => uc.CommunityId, communityChannel.CommunityId);
                 if (!await _usersCommunity.AnyByPredicateAsync(userFilter))
-                    return (null, "This User is not member of this Community.");
+                    return (null, false, "This User is not member of this Community.");
 
                 // Check User access
                 var user = await _usersCommunity.FindOneAsync(userFilter);
 
                 if (communityChannel.Type == CommunityChannelType.Voice && !user.Roles.ContainsKey("Create Voice Channel"))
-                    return (null, "This User cannot be create a voice channel in this Community (access denied).");
+                    return (null, false, "This User cannot be create a voice channel in this Community (access denied).");
 
                 if (communityChannel.Type == CommunityChannelType.Text && !user.Roles.ContainsKey("Create Text Channel"))
-                    return (null, "This User cannot be create a text channel in this Community (access denied).");
+                    return (null, false, "This User cannot be create a text channel in this Community (access denied).");
 
                 // Create channel
                 var addedCommunityChannel = new CommunityChannel(communityChannel.Title, communityChannel.Description, communityChannel.Type, CommunityChannelStatus.Active)
@@ -80,15 +86,15 @@ namespace Application.Services
                 };
                 await _communityChannel.AddAsync(addedCommunityChannel);
 
-                return (_mapper.Map<CommunityChannelGetDto>(addedCommunityChannel), "Channel created successfully.");
+                return (_mapper.Map<CommunityChannelGetDto>(addedCommunityChannel), true, "Channel created successfully.");
             }
             catch (Exception ex)
             {
-                return (null, ex.Message);
+                return (null, false, ex.Message);
             }
         }
 
-        public async Task<(CommunityChannelGetDto?, string)> UpdateCommunityChannel(Ulid userId, Ulid channelId,
+        public async Task<(CommunityChannelGetDto?, bool, string)> UpdateCommunityChannel(Ulid userId, Ulid channelId,
             CommunityChannelPutDto communityChannel)
         {
             try
@@ -96,32 +102,32 @@ namespace Application.Services
                 // Find channel
                 var channelFilter = Builders<CommunityChannel>.Filter.Gt(cc => cc.Id, channelId);
                 if (!await _communityChannel.AnyByPredicateAsync(channelFilter))
-                    return (null, "Couldn't find any Channel with that Id.");
+                    return (null, false, "Couldn't find any Channel with that Id.");
 
                 var channel = await _communityChannel.FindOneAsync(channelFilter);
 
                 // Check Community
                 var communityFilter = Builders<Community>.Filter.Gt(c => c.Id, channel.CommunityId);
                 if (!await _community.AnyByPredicateAsync(communityFilter))
-                    return (null, "Couldn't find any Community with that Id.");
+                    return (null, false, "Couldn't find any Community with that Id.");
                 var community = await _community.FindOneAsync(communityFilter);
                 if (community.Status != CommunityStatus.Active)
-                    return (null, "This Community is not active.");
+                    return (null, false, "This Community is not active.");
 
                 // Check User registration
                 var userFilter = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId) &
                                  Builders<UsersCommunity>.Filter.Gt(uc => uc.CommunityId, channel.CommunityId);
                 if (!await _usersCommunity.AnyByPredicateAsync(userFilter))
-                    return (null, "This User is not member of this Community.");
+                    return (null, false, "This User is not member of this Community.");
 
                 // Check User access
                 var user = await _usersCommunity.FindOneAsync(userFilter);
 
                 if (channel.Type == CommunityChannelType.Voice && !user.Roles.ContainsKey("Create Voice Channel"))
-                    return (null, "This User cannot be edit a voice channel in this Community (access denied).");
+                    return (null, false, "This User cannot be edit a voice channel in this Community (access denied).");
 
                 if (channel.Type == CommunityChannelType.Text && !user.Roles.ContainsKey("Create Text Channel"))
-                    return (null, "This User cannot be edit a text channel in this Community (access denied).");
+                    return (null, false, "This User cannot be edit a text channel in this Community (access denied).");
 
                 // Update channel
                 var updatedChannel =
@@ -135,11 +141,11 @@ namespace Application.Services
                     };
                 await _communityChannel.UpdateAsync(channelFilter, updatedChannel);
 
-                return (_mapper.Map<CommunityChannelGetDto>(updatedChannel), "Channel updated successfully.");
+                return (_mapper.Map<CommunityChannelGetDto>(updatedChannel), true, "Channel updated successfully.");
             }
             catch (Exception ex)
             {
-                return (null, ex.Message);
+                return (null, false, ex.Message);
             }
         }
 
