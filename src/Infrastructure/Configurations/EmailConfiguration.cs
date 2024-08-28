@@ -12,9 +12,9 @@ namespace Infrastructure.Configurations
         public EmailSettings GetEmailSettings()
         {
             var jsonContent = File.ReadAllText("email.json");
-            var database = JsonSerializer.Deserialize<EmailSettings>(jsonContent);
+            var emailSettings = JsonSerializer.Deserialize<EmailSettings>(jsonContent);
 
-            return database!;
+            return emailSettings!;
         }
     }
 }

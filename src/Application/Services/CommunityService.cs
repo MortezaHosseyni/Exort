@@ -89,15 +89,17 @@ namespace Application.Services
                     MembersCount = 1,
                     Channels = new List<CommunityChannel>()
                     {
-                        new ("General Text", null, CommunityChannelType.Text)
+                        new ("General Text", null, CommunityChannelType.Text, CommunityChannelStatus.Active)
                         {
                             CreateDateTime = DateTime.Now,
-                            UpdateDateTime = DateTime.Now
+                            UpdateDateTime = DateTime.Now,
+                            CommunityId = id
                         },
-                        new ("General Voice", null, CommunityChannelType.Voice)
+                        new ("General Voice", null, CommunityChannelType.Voice, CommunityChannelStatus.Active)
                         {
                             CreateDateTime = DateTime.Now,
-                            UpdateDateTime = DateTime.Now
+                            UpdateDateTime = DateTime.Now,
+                            CommunityId = id
                         }
                     },
                     CreateDateTime = DateTime.Now,

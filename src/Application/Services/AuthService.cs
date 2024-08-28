@@ -134,7 +134,7 @@ namespace Application.Services
                 await _email.SendEmailAsync(password.Email, "Exort | Forgot Password", $"Your reset password code is: {code}", false); // TODO: Create beautiful html page for email body.
 
                 user.ResetPasswordCode = code;
-                user.ResetPasswordExpireTime = DateTime.Now.Minute(30);
+                user.ResetPasswordExpireTime = DateTime.Now.AddMinutes(30);
                 await _user.UpdateAsync(userFilter, user);
 
                 return (true, "Reset password code sent to email successfully.");
