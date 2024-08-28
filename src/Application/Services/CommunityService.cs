@@ -11,8 +11,8 @@ namespace Application.Services
     {
         Task<CommunityGetDto> GetCommunity(Ulid id);
         Task<List<CommunityGetDto>> GetUserCommunities(Ulid userId);
-        Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community, Ulid userId);
-        Task<(CommunityGetDto?, string)> UpdateCommunity(Ulid id, CommunityPutDto community);
+        Task<(CommunityGetDto?, bool, string)> AddCommunity(CommunityPostDto community, Ulid userId);
+        Task<(CommunityGetDto?, bool, string)> UpdateCommunity(Ulid id, Ulid userId, CommunityPutDto community);
         Task<(bool, string)> JoinToCommunity(Ulid userId, Ulid communityId);
         Task<(bool, string)> LeaveTheCommunity(Ulid userId, Ulid communityId);
     }
@@ -52,15 +52,17 @@ namespace Application.Services
             return communities;
         }
 
-        public async Task<(CommunityGetDto?, string)> AddCommunity(CommunityPostDto community, Ulid userId)
+        public async Task<(CommunityGetDto?, bool, string)> AddCommunity(CommunityPostDto community, Ulid userId)
         {
             try
             {
+                // Check User Communities
                 var checkUserCommunities = Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId);
                 var userCommunitiesCount = await _usersCommunity.CountByPredicateAsync(checkUserCommunities);
                 if (userCommunitiesCount >= CommunityCreationQuota)
-                    return (null, $"This User has reached Community creation quota (Maximum Community user can create or join: {CommunityCreationQuota}).");
+                    return (null, false, $"This User has reached Community creation quota (Maximum Community user can create or join: {CommunityCreationQuota}).");
 
+                // Add Community
                 var id = Ulid.NewUlid();
                 var defaultRoles = new Dictionary<string, ICollection<CommunityPart>> { { "Member", new List<CommunityPart>()
                 {
@@ -107,6 +109,7 @@ namespace Application.Services
                 };
                 await _community.AddAsync(addedCommunity);
 
+                // Add User Community
                 var addedUserCommunity = new UsersCommunity(UserCommunityStatus.Active)
                 {
                     CommunityId = id,
@@ -166,6 +169,11 @@ namespace Application.Services
                                 {
                                     CreateDateTime = DateTime.Now,
                                     UpdateDateTime = DateTime.Now
+                                },
+                                new ("Update Community", "User can update information about Community.", new List<string>())
+                                {
+                                    CreateDateTime = DateTime.Now,
+                                    UpdateDateTime = DateTime.Now
                                 }
                             }
                         }
@@ -175,21 +183,38 @@ namespace Application.Services
                 };
                 await _usersCommunity.AddAsync(addedUserCommunity);
 
-                return (_mapper.Map<CommunityGetDto>(addedCommunity), "Community created successfully.");
+                return (_mapper.Map<CommunityGetDto>(addedCommunity), true, "Community created successfully.");
             }
             catch (Exception ex)
             {
-                return (null, ex.Message);
+                return (null, false, ex.Message);
             }
         }
 
-        public async Task<(CommunityGetDto?, string)> UpdateCommunity(Ulid id, CommunityPutDto community)
+        public async Task<(CommunityGetDto?, bool, string)> UpdateCommunity(Ulid id, Ulid userId, CommunityPutDto community)
         {
             try
             {
+                // Find & check User
+                var userCommunityFilter = Builders<UsersCommunity>.Filter.Gt(uc => uc.CommunityId, id) &
+                                          Builders<UsersCommunity>.Filter.Gt(uc => uc.UserId, userId);
+                if (!await _usersCommunity.AnyByPredicateAsync(userCommunityFilter))
+                    return (null, false, "This User is not joined in this Community.");
+
+                var userCommunity = await _usersCommunity.FindOneAsync(userCommunityFilter);
+
+                // Check User access
+                var hasAccess = userCommunity.Roles
+                    .SelectMany(role => role.Value)
+                    .Any(communityPart => communityPart.Name == "Update Community");
+                if (!hasAccess)
+                    return (null, false, "This User has not have access to update this Community.");
+
+                // Find Community
                 var filter = Builders<Community>.Filter.Gt(c => c.Id, id);
                 var communityModel = await _community.FindOneAsync(filter);
 
+                // Update Community
                 var updatedCommunity = new Community(community.Name, community.Description,
                     community.Image != null
                         ? _fileManager.SaveFileAndReturnName(community.Image, $"wwwroot/Communities/{id}/Images")
@@ -208,11 +233,11 @@ namespace Application.Services
 
                 await _community.UpdateAsync(filter, updatedCommunity);
 
-                return (_mapper.Map<CommunityGetDto>(updatedCommunity), "Community updated successfully.");
+                return (_mapper.Map<CommunityGetDto>(updatedCommunity), true, "Community updated successfully.");
             }
             catch (Exception ex)
             {
-                return (null, ex.Message);
+                return (null, false, ex.Message);
             }
         }
 

@@ -64,6 +64,11 @@ namespace Application.Seeds
                 {
                     CreateDateTime = DateTime.Now,
                     UpdateDateTime = DateTime.Now
+                },
+                new ("Update Community", "User can update information about Community.", new List<string>())
+                {
+                    CreateDateTime = DateTime.Now,
+                    UpdateDateTime = DateTime.Now
                 }
             };
 

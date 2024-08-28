@@ -2,6 +2,7 @@
 using Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebApi.Responses;
 using WebApi.Responses.Auth;
 
@@ -20,21 +21,24 @@ namespace WebApi.Controllers.V1
         /// <summary>
         /// Update authenticated User information.
         /// </summary>
-        /// <param name="id">User Id</param>
         /// <param name="user">User Information</param>
         /// <returns>User Model</returns>
-        [HttpPut("{id}")]
+        [HttpPut]
         [Authorize]
         [ProducesResponseType(typeof(UserOfficialGetDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(DefaultResponse), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> Put([FromRoute] Ulid id, [FromForm] UserPutDto user)
+        public async Task<ActionResult> Put([FromForm] UserPutDto user)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(new DefaultResponse() { Message = "User information is invalid.", Status = 400 });
 
-                var updatedResult = await _user.UpdateUser(id, user);
+                var currentUser = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (currentUser == null)
+                    return Unauthorized(new DefaultResponse() { Message = "User is not authenticated.", Status = 401 });
+
+                var updatedResult = await _user.UpdateUser(Ulid.Parse(currentUser.Value), user);
 
                 if (updatedResult.Item2)
                     return Ok(new UserUpdateResponse() { User = updatedResult.Item1!, Message = updatedResult.Item3, Status = 200 });
@@ -50,21 +54,24 @@ namespace WebApi.Controllers.V1
         /// <summary>
         /// Update authenticated User password.
         /// </summary>
-        /// <param name="id">User Id</param>
         /// <param name="updatePassword">User Password Information</param>
         /// <returns>User Model</returns>
-        [HttpPut("UpdatePassword/{id}")]
+        [HttpPut("UpdatePassword")]
         [Authorize]
         [ProducesResponseType(typeof(DefaultResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(DefaultResponse), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult> UpdatePassword([FromRoute] Ulid id, [FromBody] UserUpdatePasswordDto updatePassword)
+        public async Task<ActionResult> UpdatePassword([FromBody] UserUpdatePasswordDto updatePassword)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(new DefaultResponse() { Message = "Password model is invalid.", Status = 400 });
 
-                var updatedPassword = await _user.UpdatePassword(id, updatePassword);
+                var currentUser = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (currentUser == null)
+                    return Unauthorized(new DefaultResponse() { Message = "User is not authenticated.", Status = 401 });
+
+                var updatedPassword = await _user.UpdatePassword(Ulid.Parse(currentUser.Value), updatePassword);
 
                 if (updatedPassword.Item1)
                     return Ok(new DefaultResponse() { Message = updatedPassword.Item2, Status = 200 });
