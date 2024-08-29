@@ -67,6 +67,9 @@ namespace WebApi.Controllers.V1
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(new DefaultResponse() { Message = "Community Channel model is invalid.", Status = 400 });
+
                 var currentUser = User.FindFirst(ClaimTypes.NameIdentifier);
                 if (currentUser == null)
                     return Unauthorized(new DefaultResponse() { Message = "User is not authenticated.", Status = 401 });
@@ -98,6 +101,9 @@ namespace WebApi.Controllers.V1
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(new DefaultResponse() { Message = "Community Channel model is invalid.", Status = 400 });
+
                 var currentUser = User.FindFirst(ClaimTypes.NameIdentifier);
                 if (currentUser == null)
                     return Unauthorized(new DefaultResponse() { Message = "User is not authenticated.", Status = 401 });
@@ -105,7 +111,7 @@ namespace WebApi.Controllers.V1
                 var updateChannel = await _channel.UpdateCommunityChannel(Ulid.Parse(currentUser.Value), id, channel);
 
                 return updateChannel.Item2 ?
-                    Ok(new CommunityChannelDefaultResponse() { CommunityChannel = updateChannel.Item1!, Message = updateChannel.Item3, Status = 201 }) :
+                    Ok(new CommunityChannelDefaultResponse() { CommunityChannel = updateChannel.Item1!, Message = updateChannel.Item3, Status = 200 }) :
                     BadRequest(new DefaultResponse() { Message = updateChannel.Item3, Status = 400 });
             }
             catch (Exception ex)
@@ -135,7 +141,7 @@ namespace WebApi.Controllers.V1
                 var deleteChannel = await _channel.DeleteChannel(Ulid.Parse(currentUser.Value), id);
 
                 return deleteChannel.Item1 ?
-                    StatusCode(StatusCodes.Status204NoContent, new DefaultResponse() { Message = deleteChannel.Item2, Status = 201 }) :
+                    StatusCode(StatusCodes.Status204NoContent, new DefaultResponse() { Message = deleteChannel.Item2, Status = 204 }) :
                     BadRequest(new DefaultResponse() { Message = deleteChannel.Item2, Status = 400 });
             }
             catch (Exception ex)
