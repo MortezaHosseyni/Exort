@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using WebApi.Hubs;
 
 // Builder
 var builder = WebApplication.CreateBuilder(args);
@@ -85,6 +86,9 @@ builder.Services.AddScoped<IFriendService, FriendService>();
 
 builder.Services.AddScoped<IPrivateMessageRepository, PrivateMessageRepository>();
 builder.Services.AddScoped<IPrivateMessageService, PrivateMessageService>();
+
+// SignalR
+builder.Services.AddSignalR();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -168,6 +172,13 @@ app.MapControllers();
 
 // Static Files
 app.UseStaticFiles();
+
+// Endpoint & Hubs
+app.UseRouting();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapHub<VoiceChatHub>("/VoiceChat");
+});
 
 // Run
 app.Run();
