@@ -13,7 +13,7 @@ namespace Application.Services
         Task<List<UserGetDto>> GetMutualFriends(Ulid userId, Ulid friendId);
         Task<(bool, string)> AddFriend(Ulid userId, Ulid friendId);
         Task<(bool, string)> RemoveFriend(Ulid id, Ulid userId, Ulid friendId);
-        Task<(bool, string)> AcceptFriend(Ulid userId, Ulid friendId);
+        Task<(bool, string)> AcceptFriend(Ulid userId, Ulid id);
     }
     public class FriendService(IFriendRepository friend, IUserRepository user, IMapper mapper) : IFriendService
     {
@@ -130,6 +130,16 @@ namespace Application.Services
                 var friend = await _friend.FindOneAsync(filter);
                 friend.UpdateStatus(FriendStatus.Active);
                 await _friend.UpdateAsync(filter, friend);
+
+                // Add Friend
+                var addFriend = new Friend(FriendStatus.Active)
+                {
+                    UserId = userId,
+                    FriendId = friend.UserId,
+                    CreateDateTime = DateTime.Now,
+                    UpdateDateTime = DateTime.Now
+                };
+                await _friend.AddAsync(addFriend);
 
                 return (true, "Friend request accepted successfully.");
             }

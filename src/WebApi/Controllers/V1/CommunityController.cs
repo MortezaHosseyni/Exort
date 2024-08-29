@@ -23,6 +23,7 @@ namespace WebApi.Controllers.V1
         /// <returns>List of Community Model</returns>
         [HttpGet("MyCommunities")]
         [ProducesResponseType(typeof(List<CommunityGetDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(DefaultResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(DefaultResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(DefaultResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult> GetMyCommunities()
